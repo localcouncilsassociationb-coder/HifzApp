@@ -1,0 +1,215 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Hifz - 16-line Mushaf</title>
+<meta name="theme-color" content="#0e5a4a">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" href="icon-192.png">
+<style>
+@font-face{font-family:Khatt;src:url(fonts/DigitalKhattIndoPak.otf);font-display:block}
+:root{--bg:#e8eeeb;--paper:#fff;--ink:#14231f;--muted:#566860;--accent:#0e5a4a;--tint:rgba(14,90,74,.1);--mask:rgba(14,90,74,.17);--line:#c9d6d1}
+@media(prefers-color-scheme:dark){:root{--bg:#0d1513;--paper:#15201d;--ink:#e6efe9;--muted:#93a79f;--accent:#5fc3a6;--tint:rgba(95,195,166,.14);--mask:rgba(95,195,166,.24);--line:#2a3a35}}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font:15px/1.4 system-ui,-apple-system,"Segoe UI",sans-serif}
+header{position:sticky;top:0;z-index:2;background:var(--bg);border-bottom:1px solid var(--line);padding:6px 10px}
+.top{display:flex;align-items:center;gap:10px}
+h1{font-size:1.05rem;margin:0;font-weight:650}
+#prog{color:var(--muted);font-size:.85rem;flex:1}
+.ctl{display:flex;flex-wrap:wrap;gap:5px;margin-top:5px;align-items:center}.ctl button,.ctl select,.ctl input{min-height:34px;padding:0 8px;font-size:.9rem}.tools-menu{display:none;position:fixed;z-index:30;top:58px;right:10px;min-width:180px;max-width:calc(100vw - 20px);padding:6px;background:var(--paper);border:1px solid var(--line);border-radius:10px;box-shadow:0 8px 24px rgba(0,0,0,.16)}.tools-menu.on{display:flex;flex-direction:column}.tools-menu button{text-align:left;border:0;border-radius:7px;background:transparent;min-height:36px}.tools-menu button:hover{background:var(--tint)}
+button,select,input{font:inherit;color:var(--ink);background:var(--paper);border:1px solid var(--line);border-radius:8px;min-height:40px;padding:0 10px}
+button{cursor:pointer}
+button:disabled{opacity:.4;cursor:default}
+button[aria-pressed=true]{background:var(--accent);border-color:var(--accent);color:var(--paper)}
+:focus-visible{outline:3px solid var(--accent);outline-offset:2px}
+#pg{width:72px}
+label{display:flex;align-items:center;gap:6px;color:var(--muted);font-size:.85rem}
+main{padding:12px 10px 8px;display:flex;justify-content:center;gap:30px;align-items:flex-start}
+.page[hidden]{display:none}
+#load{color:var(--muted);padding:40px 10px;text-align:center;max-width:32em}
+.page{padding:10px 28px;background:var(--paper);border:3px double var(--accent);border-radius:4px;display:flex;flex-direction:column}
+.page.short{justify-content:center}
+.page.done{border-style:solid}
+.line{position:relative;display:flex;justify-content:space-between;align-items:center;direction:rtl;white-space:nowrap;font-size:var(--fs,40px);height:calc(var(--fs,40px)*1.7)}
+.line.c{justify-content:center;gap:.22em}
+.w{flex:none;font-family:Khatt,serif;line-height:1.7;cursor:default}
+.w.hid:not(.r){color:transparent;background:var(--mask);border-radius:.18em;cursor:pointer}
+.sur{direction:ltr;justify-content:center;gap:.8em;font-size:calc(var(--fs,40px)*.5);background:var(--tint);border:1px solid var(--accent);border-radius:6px;color:var(--accent)}
+.sur b{font-weight:650}
+footer{position:sticky;bottom:0;background:var(--bg);border-top:1px solid var(--line);padding:8px 10px;display:flex;align-items:center;justify-content:space-between;gap:8px}
+footer button{min-width:110px}
+#mid{text-align:center;line-height:1.2}
+#sn{display:block;color:var(--muted);font-size:.8rem}
+dialog{max-width:34em;width:calc(100% - 24px);border:1px solid var(--line);border-radius:12px;background:var(--paper);color:var(--ink);padding:18px}
+dialog::backdrop{background:rgba(0,0,0,.45)}
+dialog h2{font-size:1.05rem;margin:0 0 8px}
+dialog p{margin:.5em 0;color:var(--muted);font-size:.9rem}
+.row{display:flex;flex-wrap:wrap;gap:8px;margin:10px 0;align-items:center}
+</style>
+</head>
+<body>
+<header>
+  <div class="top"><h1>Hifz</h1><span id="prog"></span><button id="menu" aria-label="About and backup">More</button></div>
+  <div class="ctl">
+    <label>Page <input id="pg" type="number" min="1" max="548" inputmode="numeric"></label>
+    <select id="sur" aria-label="Go to surah"><option value="">Surah</option></select>
+    <select id="juz" aria-label="Go to juz"><option value="">Juz</option></select>
+    <select id="hid" aria-label="Hide text for testing">
+      <option value="off">Show all text</option><option value="all">Hide whole page</option>
+      <option value="low">Hide lower half</option><option value="up">Hide upper half</option>
+    </select>
+    <button id="mem" aria-pressed="false">Mark memorized</button>
+  </div>
+</header>
+<main><div id="load">Loading the Mushaf...</div><div id="page2" class="page" hidden></div><div id="page" class="page" hidden></div></main>
+<footer>
+  <button id="nx">&#8249; Next page</button>
+  <div id="mid"><span id="ind"></span><small id="sn"></small></div>
+  <button id="pv">Previous page &#8250;</button>
+</footer>
+<dialog id="dlg">
+  <h2>Backup your progress</h2>
+  <p>Your progress is saved in this browser only. Download a backup to move it to another device or keep it safe.</p>
+  <div class="row"><button id="exp">Download backup</button>
+    <label>Restore <input id="imp" type="file" accept="application/json,.json"></label></div>
+  <p id="msg" role="status"></p>
+  <h2>About</h2>
+  <p>Layout: Indopak 16 lines (Taj company), script: Digital Khatt IndoPak, both from Tarteel QUL. Font: DigitalKhatt IndoPak, copyright Amine Anane and Tarteel Inc., SIL Open Font License 1.1.</p>
+  <p>Word meanings (Urdu and English) and translations (Fateh Muhammad Jalandhari, Urdu; M.A.S. Abdel Haleem, English) are from Tarteel QUL. Please check each resource's license.</p>
+  <p>Audio: Sheikh Saud ash-Shuraym via everyayah.com (needs internet).</p>
+  <p>Always compare against your printed Mushaf when memorizing.</p>
+  <div class="row"><button id="close">Close</button></div>
+</dialog>
+<script>
+(()=>{
+const $=s=>document.querySelector(s),N=548,LH=1.7,el=$('#page'),el2=$('#page2');
+let D,page=1,S={done:{},last:1};
+try{S=Object.assign(S,JSON.parse(localStorage.getItem('hifz')||'{}'))}catch(e){}
+const save=()=>{try{localStorage.setItem('hifz',JSON.stringify(S))}catch(e){}};
+
+function go(p){page=Math.max(1,Math.min(N,parseInt(p)||1));S.last=page;save();render();scrollTo(0,0)}
+
+function draw(el,pn){
+  el.innerHTML='';
+  const L=D.pages[pn-1];
+  // Track ayah starts across the whole page. An ayah can continue onto
+  // another Mushaf line, so this must NOT reset for every line.
+  let ayahStart=true;
+  L.forEach(l=>{
+    const d=document.createElement('div');
+    if(l[0]==1){
+      d.className='line sur';
+      const b=document.createElement('b'),s=document.createElement('span');
+      b.textContent=window.AR?'سورة '+AR[l[2]-1]:D.surahs[l[2]-1];s.textContent=D.surahs[l[2]-1]+' · '+l[2];
+      d.append(b,s);
+    }else{
+      d.className='line'+(l[1]?' c':'')+(l[0]==2?' bsm':'');
+      let [vs,va]=(l[3]||'0:0').split(':').map(Number);
+      (l[0]==2?D.basmallah:l[2]).split(' ').forEach(w=>{
+        const s=document.createElement('span');s.className='w';s.textContent=w;
+        if(l[0]==0){
+          s.dataset.v=vs+':'+va;
+          if(ayahStart){s.dataset.ayahStart='1';ayahStart=false}
+          if(w.includes('\u06dd')){va++;ayahStart=true}
+        }
+        d.appendChild(s);
+      });
+    }
+    el.appendChild(d);
+  });
+  el.classList.toggle('short',L.length<16);
+  el.classList.toggle('done',!!S.done[pn]);
+}
+function render(){
+  const two=!!S.two;
+  if(two&&page%2==0)page--;
+  draw(el,page);el2.hidden=!two;if(two)draw(el2,page+1);
+  applyHide();fit();ui();window.hook&&hook();
+}
+const mv=d=>go(page+(S.two?2*d:d));
+
+function applyHide(){
+  const m=$('#hid').value;[el,el2].forEach(pg=>{const ls=[...pg.querySelectorAll('.line:not(.sur)')],n=ls.length;
+  ls.forEach((d,i)=>{
+    const h=!d.classList.contains('bsm')&&(m=='all'||(m=='low'&&i>=n/2)||(m=='up'&&i<n/2));
+    d.querySelectorAll('.w').forEach(w=>{w.classList.toggle('hid',h);w.classList.remove('r')});
+  });});
+}
+
+function fit(){
+  const P=el2.hidden?[el]:[el2,el],n=P.length,G=document.body.classList.contains('full-reader')?12:64;
+  let max=1;
+  P.forEach(p=>{p.style.setProperty('--fs','40px');
+    p.querySelectorAll('.line:not(.sur):not(.c)').forEach(d=>{let w=0;const ws=d.querySelectorAll('.w');ws.forEach(c=>w+=c.offsetWidth);w+=(ws.length-1)*8;max=Math.max(max,w)})});
+  const full=document.body.classList.contains('full-reader');const side=full?(innerWidth<=600?12:128):50;const aw=Math.min((innerWidth-side-(n-1)*30)/n-G,700);
+  const ah=innerHeight-$('header').offsetHeight-$('footer').offsetHeight-86;
+  const fs=Math.max(10,Math.min(40*aw/max,ah/(16*LH),60));
+  P.forEach(p=>{p.style.setProperty('--fs',fs+'px');p.style.width=Math.ceil(max*fs/40)+G+'px'});
+}
+
+function ui(){
+  const n=Object.keys(S.done).length;
+  let si=0;D.surahPage.forEach((p,i)=>{if(p<=page)si=i});
+  $('#pg').value=page;
+  $('#prog').textContent=n+' of '+N+' pages memorized';
+  const done=!!S.done[page];
+  $('#mem').textContent=done?'Memorized':'Mark memorized';
+  $('#mem').setAttribute('aria-pressed',done);
+  $('#ind').textContent='Page '+page+(S.two?'-'+(page+1):'')+' of '+N;
+  $('#sn').textContent=D.surahs[si];
+  $('#pv').disabled=page<=1;$('#nx').disabled=page>=N-(S.two?1:0);
+}
+
+$('#pg').onchange=e=>go(e.target.value);
+$('#sur').onchange=e=>{if(e.target.value)go(D.surahPage[e.target.value-1]);e.target.value=''};
+$('#juz').onchange=e=>{if(e.target.value)go(D.juzPage[e.target.value-1]);e.target.value=''};
+$('#hid').onchange=applyHide;
+$('#nx').onclick=()=>mv(1);
+$('#pv').onclick=()=>mv(-1);
+$('#mem').onclick=()=>{if(S.done[page])delete S.done[page];else S.done[page]=new Date(Date.now()-new Date().getTimezoneOffset()*6e4).toISOString().slice(0,10);save();render()};
+$('main').addEventListener('click',e=>{const w=e.target.closest('.w.hid');if(w)w.classList.toggle('r')});
+addEventListener('keydown',e=>{
+  if(/INPUT|SELECT|TEXTAREA/.test(e.target.tagName)||!D)return;
+  const k=e.key=='ArrowLeft'?-1:e.key=='ArrowRight'?1:0;if(k)mv(S.dir=='ltr'?k:-k);
+});
+let x0=null;
+$('main').addEventListener('touchstart',e=>{x0=e.touches[0].clientX},{passive:true});
+$('main').addEventListener('touchend',e=>{
+  if(x0===null)return;
+  const dx=e.changedTouches[0].clientX-x0;x0=null;
+  if(Math.abs(dx)>70)mv((dx>0?1:-1)*(S.dir=='ltr'?-1:1));
+},{passive:true});
+addEventListener('resize',()=>D&&fit());
+
+$('#menu').onclick=()=>{$('#msg').textContent='';$('#dlg').showModal()};
+$('#close').onclick=()=>$('#dlg').close();
+$('#exp').onclick=()=>{
+  const a=document.createElement('a');
+  a.href=URL.createObjectURL(new Blob([JSON.stringify(S)],{type:'application/json'}));
+  a.download='hifz-backup-'+new Date().toISOString().slice(0,10)+'.json';a.click();
+};
+$('#imp').onchange=e=>{
+  const f=e.target.files[0];if(!f)return;
+  f.text().then(t=>{
+    const o=JSON.parse(t);if(!o||typeof o.done!=='object')throw 0;
+    S=Object.assign({done:{},last:1},o);save();go(S.last);$('#msg').textContent='Backup restored.';
+  }).catch(()=>{$('#msg').textContent='That file is not a valid backup.'});
+};
+
+window.H={get D(){return D},get S(){return S},get page(){return page},get V(){return window.__HIFZ_V||null},go,save,el,render};
+fetch('data/mushaf.json').then(r=>{if(!r.ok)throw 0;return r.json()}).then(async d=>{
+  D=d;
+  D.surahs.forEach((n,i)=>$('#sur').add(new Option((i+1)+'. '+n,i+1)));
+  for(let j=1;j<=30;j++)$('#juz').add(new Option('Juz '+j,j));
+  try{await document.fonts.load('40px Khatt','\u0628\u0633\u0645')}catch(e){}
+  $('#load').remove();el.hidden=false;go(S.last||1);
+}).catch(()=>{
+  $('#load').textContent='Could not load the Mushaf data. Open the app from its web link, not by double-clicking the file, and connect to the internet once.';
+});
+if('serviceWorker' in navigator&&location.protocol.startsWith('http'))navigator.serviceWorker.register('sw.js');
+})();
+</script>
+<script src="extra.js"></script>
+</body>
+</html>
